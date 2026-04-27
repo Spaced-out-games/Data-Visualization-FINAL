@@ -76,6 +76,34 @@ def make_interactive_table(df: pd.DataFrame, keys: list[str], labels: list[str],
 
     return fig
 
+
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+    x: float
+    y: float
+
+class Location(Point):
+    label: str
+
+
+def make_cloropleth_map(position: Point, initial_zoom: int, markers: list[Location], map_path: str) -> str:
+    m = folium.Map(location=[position.x, position.y], zoom_start=initial_zoom)
+
+    for location in markers:
+        folium.Marker(
+            location=[location.x, location.y],
+            popup=location.label
+        ).add_to(m)
+    m.save(map_path)
+    return map_path # for convenience
+
+
+
+#38.7234319,-99.779717
+
+
 # ---------------- LAYOUT ----------------
 
 app.layout = html.Div([
@@ -86,7 +114,13 @@ app.layout = html.Div([
     dcc.Graph(figure=make_barchart_fig(df, "state", "healthcare_cost", "Healthcare Cost By State")),
     dcc.Graph(figure=make_barchart_fig(df, "state", "childcare_cost", "Childcare Cost By State")),
     #dcc.Graph(figure=make_barchart_fig(df, "state", "family_member_count", "Family Makeup By State")),
+    html.Iframe(
+        srcDoc=open(make_cloropleth_map(Point(0,0), 16, [], "test.html"), "r").read(),
+        width="1960",
+        height="1080"
+	)
 ])
+
 
 # ---------------- RUN ----------------
 
