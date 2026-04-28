@@ -40,7 +40,7 @@ if __name__ == "__main__":
     df = clean_dataset(load_dataset("cost_of_living_us.csv"))
     df["family_size_numeric"] = df["family_member_count"].apply(parse_family_size)
     print(df)
-    #grouped = df.groupby("family_member_count", as_index=True)["family_member_count"]
+    grouped = df.groupby("family_member_count", as_index=True)["family_member_count"]
     app.layout = html.Div([
 		html.H1("Cost of Living"),
         
@@ -96,7 +96,7 @@ if __name__ == "__main__":
 			height="1080"
 		),
         
-		dcc.Graph(figure=px.bar(grouped, x="state", y="family_size_numeric", color="family_size_numeric", title="Long-Form Input")),
+		#dcc.Graph(figure=px.bar(grouped, x="state", y="family_size_numeric", color="family_size_numeric", title="Long-Form Input")),
 
 		
 		
