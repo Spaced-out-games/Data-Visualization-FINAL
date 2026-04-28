@@ -1,6 +1,26 @@
 import os
+import json
+from urllib.request import urlopen
 
 print (f"Current working directory: {os.getcwd()}")
+
+
+STATE_FULLNAME_LOOKUP = {
+    'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
+    'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'DC': 'District of Columbia',
+    'FL': 'Florida', 'GA': 'Georgia', 'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois',
+    'IN': 'Indiana', 'IA': 'Iowa', 'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana',
+    'ME': 'Maine', 'MD': 'Maryland', 'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota',
+    'MS': 'Mississippi', 'MO': 'Missouri', 'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada',
+    'NH': 'New Hampshire', 'NJ': 'New Jersey', 'NM': 'New Mexico', 'NY': 'New York',
+    'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio', 'OK': 'Oklahoma', 'OR': 'Oregon',
+    'PA': 'Pennsylvania', 'PR': 'Puerto Rico', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+    'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
+    'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming'
+}
+
+STATE_GEOMETRIES_URL = "https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json"
+
 
 # import processing libraries
 import numpy as np
@@ -61,6 +81,7 @@ def load_dataset(dataset_name: str) -> pd.DataFrame:
 	return df
 
 def clean_dataset(dataset: pd.DataFrame) -> pd.DataFrame:
+	df['state_full'] = df['state'].map(STATE_FULLNAME_LOOKUP)
 	df = dataset.dropna()
 	total_null_entries = np.sum(df.isnull().sum())
 	if(bool(total_null_entries != 0)):
@@ -68,5 +89,9 @@ def clean_dataset(dataset: pd.DataFrame) -> pd.DataFrame:
 		return None
 	return df
 
+def load_state_geometries():
+	with urlopen(STATE_GEOMETRIES_URL) as response:
+    	state_geometries = json.load(response)
+	return state_geometries
 
 
