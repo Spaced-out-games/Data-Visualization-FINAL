@@ -13,6 +13,21 @@ if __name__ == "__main__":
 	  .reset_index(name="count")
 	  
 	)
+
+	state_df = (
+    df.groupby(["state", "state_full"], as_index=False)
+      .agg({
+          "housing_cost": "mean",
+          "food_cost": "mean",
+          "transportation_cost": "mean",
+          "healthcare_cost": "mean",
+          "other_necessities_cost": "mean",
+          "childcare_cost": "mean",
+          "taxes": "mean",
+          "total_cost": "mean",
+          "median_family_income": "mean",
+      })
+)
 	
 
 
@@ -24,6 +39,8 @@ if __name__ == "__main__":
 		.index
 	)
 
-	dashboard = make_dashboard(df, "Cost Of Living Dashboard")
+	print(df.head())
+
+	dashboard = make_dashboard(df, state_df, "Cost Of Living Dashboard")
 
 	dashboard.run(debug=True)

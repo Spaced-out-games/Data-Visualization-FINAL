@@ -6,7 +6,7 @@ from data_prep import *
 
 
 
-def make_dashboard(df: pd.Dataframe, name: str = "Cost Of Living Dashboard", dataset: str = "cost_of_living_us.csv") -> dash.Dash:
+def make_dashboard(df: pd.Dataframe, state_df, name: str = "Cost Of Living Dashboard", dataset: str = "cost_of_living_us.csv") -> dash.Dash:
 
 
 
@@ -111,8 +111,58 @@ def make_dashboard(df: pd.Dataframe, name: str = "Cost Of Living Dashboard", dat
 		y="count",
 		color="family_member_count",
 		barmode="stack",
-		color_discrete_sequence=px.colors.qualitative.Set2
+		color_discrete_sequence=px.colors.qualitative.Set2,
 	).update_layout(xaxis={'categoryorder':'array', 'categoryarray': state_order})))
+
+	items.append(dcc.Graph(
+    	figure=px.scatter(x=state_df["total_cost"], y=state_df["transportation_cost"], color=state_df["state"])
+	))
+
+	items.append(dcc.Graph(
+		figure=px.scatter(x=state_df["childcare_cost"], y=state_df["taxes"], color=state_df["state"])
+	))
+
+	items.append(dcc.Graph(
+		figure=px.scatter(x=state_df["median_family_income"], y=state_df["taxes"], color=state_df["state"])
+	))
+
+	items.append(dcc.Graph(
+		figure=px.scatter(x=state_df["housing_cost"], y=state_df["taxes"], color=state_df["state"])
+	))
+
+	items.append(dcc.Graph(
+		figure=px.scatter(x=state_df["housing_cost"], y=state_df["taxes"], color=state_df["state"])
+	))
+
+
+	childcare_sorted_df = (
+    df.groupby("county", as_index=False)["childcare_cost"]
+      .mean()
+      .sort_values("childcare_cost", ascending=False)
+      .head(12)
+	)
+
+	tax_sorted_df = (
+    df.groupby("county", as_index=False)["taxes"]
+      .mean()
+      .sort_values("taxes", ascending=False)
+      .head(12)
+	)
+
+	corr_df = pd.DataFrame()
+
+	corr_df["childcare_cost"] = df["childcare_cost"]
+	corr_df["housing_cost"] = df["housing_cost"]
+	corr_df["taxes"] = df["taxes"]
+
+
+	items.append(dcc.Graph(figure=make_barchart_fig(childcare_sorted_df[:12], "county", "childcare_cost", "Top 12 Highest Childcare Cost Counties")))
+	items.append(dcc.Graph(figure=make_barchart_fig(tax_sorted_df[:12], "county", "taxes", "Top 12 Highest-Tax Counties")))
+
+	items.append(
+		dcc.Graph(figure = px.density_heatmap(corr_df, x="childcare_cost", y="housing_cost", z="taxes", histfunc="avg"))
+	)
+
 
 	app.layout = html.Div(items)
 
