@@ -1,7 +1,7 @@
 # Data-Visualization-FINAL
-Final project for my data visualization class
-I could not find the dataset to get a view of what we are doing, so this 
-README is the best I can do for now.
+## Data Visualization With Python FINAL ASSIGNMENT
+# Purpose: to visualize and analyze data from the Economic Policy Institute(EPI) dataset
+
 
 problems, methods, approaches, special findings
 
