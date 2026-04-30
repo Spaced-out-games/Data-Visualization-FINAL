@@ -1,11 +1,10 @@
 
 from visualizations import make_dashboard
-from data_prep import clean_dataset, load_dataset, parse_family_size
+from data_prep import *
 
 if __name__ == "__main__":
 	# first things first, clean the dataset
 	df = clean_dataset(load_dataset("cost_of_living_us.csv"))
-	df["family_size_numeric"] = df["family_member_count"].apply(parse_family_size)
 
 	stacked_df = (
 	df.groupby(["state", "family_member_count"])
@@ -27,7 +26,23 @@ if __name__ == "__main__":
           "total_cost": "mean",
           "median_family_income": "mean",
       })
+	)
+
+
+	# secondary attempt
+	numeric_cols = df.select_dtypes(include=np.number).columns
+	state_df = (
+    df.groupby(["state", "state_full"], as_index=False)[numeric_cols]
+      .median()
 )
+
+	Q1 = state_df["food_cost"].quantile(0.25)
+	Q3 = state_df["food_cost"].quantile(0.75)
+	IQR = Q3 - Q1
+	lower = Q1 - 1.5 * IQR
+	upper = Q3 + 1.5 * IQR
+
+	state_df["is_foodcost_outlier"] = (state_df["food_cost"] < lower) | (state_df["food_cost"] > upper)
 	
 
 
@@ -39,8 +54,13 @@ if __name__ == "__main__":
 		.index
 	)
 
-	print(df.head())
+
+
 
 	dashboard = make_dashboard(df, state_df, "Cost Of Living Dashboard")
+
+	
+
+	print(df) # [df if df["is_foodcost_outlier"]]
 
 	dashboard.run(debug=True)

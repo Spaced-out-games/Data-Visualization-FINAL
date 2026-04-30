@@ -85,9 +85,35 @@ def load_dataset(dataset_name: str) -> pd.DataFrame:
 	return df
 
 def clean_dataset(dataset: pd.DataFrame) -> pd.DataFrame:
-	dataset['state_full'] = dataset['state'].map(STATE_FULLNAME_LOOKUP)
+	# drop nulls out-the-gate
 	dataset = dataset.dropna()
+
+	# append the full state names
+	dataset['state_full'] = dataset['state'].map(STATE_FULLNAME_LOOKUP)
+
+	# separate the household makeup strings into something meaningful using regular expressions to parse the family_member_count string
+	dataset["parents"] = dataset["family_member_count"].str.extract(r"(\d+)p").astype(int)
+	dataset["children"] = dataset["family_member_count"].str.extract(r"p(\d+)c").astype(int)
+
+	# and create a measure for family size, which is great for normalization for more accurate county/state-wide averages. It won't be perfect
+	# (eg, kids eat less than adults but this would assume equal rates) but it will still work *well enough* for the purposes of this project.
+	# I *could* count a child as half for something like food, or as nothing for transportation, or half for housing, but that's all a guess
+	# in any case.
+	dataset["family_size"] = dataset["parents"] + dataset["children"]
+	
+	Q1 = dataset["food_cost"].quantile(0.25)
+	Q3 = dataset["food_cost"].quantile(0.75)
+	IQR = Q3 - Q1
+	lower = Q1 - 1.5 * IQR
+	upper = Q3 + 1.5 * IQR
+
+	dataset["is_foodcost_outlier"] = (dataset["food_cost"] < lower) | (dataset["food_cost"] > upper)
+
+
 	total_null_entries = np.sum(dataset.isnull().sum())
+
+
+
 	if(bool(total_null_entries != 0)):
 		print(f"ERROR: no null values assertion failed. Total null entries: {total_null_entries}")
 		return None
@@ -182,6 +208,12 @@ def create_choropleth_map(
 	return map_path
 
 
+# def make_barchart_fig(df, x, y, title, agg="mean", color=None, colorscale=None):
+# 	return px.bar(data_frame=df, x=x, y=y, color = color, title = title)
+
+
+
+
 def make_barchart_fig(df, x, y, title, agg="mean", color=None, colorscale=None):
 	if agg:
 		grouped = df.groupby(x, as_index=False)[y].agg(agg)
@@ -217,6 +249,29 @@ def make_barchart_fig(df, x, y, title, agg="mean", color=None, colorscale=None):
 		if color:
 			fig.update_traces(marker_color=color)
 
+	return fig
+
+
+def make_histogram_fig(df, x, y, title, agg="mean", color=None, colorscale=None):
+	if agg:
+		grouped = df.groupby(x, as_index=False)[y].agg(agg)
+	else:
+		grouped = df[[x, y]].copy()
+
+	grouped = grouped.sort_values(by=y, ascending=False)
+
+	# --- CASE 1: colorscale (data-driven) ---
+	fig = px.histogram(
+		grouped,
+		x=x,
+		y=y,
+		title=title,
+		color=color
+	)
+	# fig.update_coloraxes(
+	# 	cmin=grouped[y].min(),
+	# 	cmax=grouped[y].max() * 10
+	# )
 	return fig
 
 
@@ -260,4 +315,65 @@ def parse_family_size(s):
 	# import re
 	# nums = list(map(int, re.findall(r'\d+', s)))
 	# return sum(nums) if nums else None
+
+
+def get_descriptives(df: pd.DataFrame) -> pd.DataFrame:
+    # ----------------------------
+    # type checking
+    # ----------------------------
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"Expected pd.DataFrame, got {type(df)}")
+
+    numeric_df = df.select_dtypes(include=[np.number]).copy()
+
+    if numeric_df.empty:
+        raise ValueError("No numeric columns found in DataFrame")
+
+    results = []
+
+    for col in numeric_df.columns:
+        series = numeric_df[col].dropna()
+
+        if series.empty:
+            continue
+
+        # basic stats
+        col_min = series.min()
+        col_max = series.max()
+        col_range = col_max - col_min
+        col_median = series.median()
+        col_mean = series.mean()
+
+        # mode (can be multiple; take first)
+        mode_series = series.mode()
+        col_mode = mode_series.iloc[0] if not mode_series.empty else np.nan
+
+        # skew
+        col_skew = series.skew()
+
+        # IQR outliers
+        q1 = series.quantile(0.25)
+        q3 = series.quantile(0.75)
+        iqr = q3 - q1
+
+        lower = q1 - 1.5 * iqr
+        upper = q3 + 1.5 * iqr
+
+        outlier_mask = (series < lower) | (series > upper)
+        outlier_count = outlier_mask.sum()
+
+        results.append({
+            "column": col,
+            "min": col_min,
+            "max": col_max,
+            "range": col_range,
+            "mean": col_mean,
+            "median": col_median,
+            "mode": col_mode,
+            "skew": col_skew,
+            "outlier_count": outlier_count,
+            "outlier_pct": outlier_count / len(series)
+        })
+
+    return pd.DataFrame(results)
 
