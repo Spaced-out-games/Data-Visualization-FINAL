@@ -221,7 +221,8 @@ def build_summary_section(df, state_df, corr):
 		  )
 	   )
 	))
-
+	
+	items.append(html.H2(f"Figure {next_fig()}"))
 	items.append(
 		dcc.Graph(
 			figure=go.Figure(
