@@ -44,12 +44,12 @@ def build_transportation_section(state_df, df, geometries):
 
 	items.append(html.H1("Transportation"))
 
-	items.append(html.H2(f"Figure {next_fig()}"))
+	items.append(html.H2(f"*Figure {next_fig()}"))
 	items.append(dcc.Graph(
 	   figure=px.histogram(state_df, x="transportation_cost", nbins=50)
 	))
 
-	items.append(html.H2(f"Figure {next_fig()}"))
+	items.append(html.H2(f"*Figure {next_fig()}"))
 	items.append(html.Iframe(
 	   srcDoc=open(create_choropleth_map(
 		  geometries, df, 'state_full', 'transportation_cost',
@@ -97,7 +97,7 @@ def build_income_section(state_df, df, geometries):
 	items.append(html.H1("Income"))
 	items.append(html.H2(f"Figure {next_fig()}"))
 	items.append(dcc.Graph(
-	   figure=px.box(state_df, x="state", y="median_family_income")
+	   figure=px.box(df, x="state", y="median_family_income")
 	))
 	items.append(html.H2(f"Figure {next_fig()}"))
 	items.append(html.Iframe(
@@ -107,6 +107,20 @@ def build_income_section(state_df, df, geometries):
 	   )).read(),
 	   width="800", height="480"
 	))
+
+	items.append(html.H2(f"Figure {next_fig()}"))
+	items.append(
+		dcc.Graph(
+
+			figure = px.histogram(
+				state_df,
+				x="median_family_income",
+				y="taxes",
+				color = "state",
+				nbins=60
+			)
+		)
+	)
 
 	return items
 
@@ -131,6 +145,19 @@ def build_childcare_section(state_df, df, geometries, childcare_sorted_df):
 		  "Top 12 Highest Childcare Cost Counties"
 	   )
 	))
+	items.append(html.H2(f"Figure {next_fig()}"))
+	items.append(
+		dcc.Graph(
+
+			figure = px.histogram(
+				state_df,
+				x="childcare_cost",
+				y="taxes",
+				color = "state",
+				nbins=35
+			)
+		)
+	)
 
 	return items
 
@@ -159,12 +186,26 @@ def build_tax_section(state_df, df, geometries, tax_sorted_df):
 		  "Top 12 Highest-Tax Counties"
 	   )
 	))
+	
 
 	return items
 
-def build_summary_section(state_df, corr):
+def build_summary_section(df, state_df, corr):
 	items = []
+
+	#items.append(dcc.Graph(go.Figure(data=[go.Table(
+    #header=dict(values=["areaname", "county", "median_family_income"],
+    #            fill_color='paleturquoise',
+    #            align='left'),
+    #cells=dict(values=[df.areaname, df.county, df.median_family_income],
+    #           fill_color='lavender',
+    #           align='left'))
+	#])))
+
+
 	items.append(html.H1("Summary"))
+
+	# 10.
 	items.append(html.H2(f"Figure {next_fig()}"))
 	items.append(dcc.Graph(
 	   figure=px.scatter(state_df, x="total_cost", y="taxes", trendline="ols")
@@ -181,6 +222,26 @@ def build_summary_section(state_df, corr):
 	   )
 	))
 
+	items.append(
+		dcc.Graph(
+			figure=go.Figure(
+				data=[go.Table(
+					header=dict(
+						values=list(df.columns),
+						fill_color='paleturquoise',
+						align='left'
+					),
+					cells=dict(
+						values=[df[col] for col in df.columns],
+						fill_color='lavender',
+						align='left'
+					)
+				)]
+			),
+			config={"displayModeBar": False}
+		)
+	)
+
 	return items
 
 def build_title():
@@ -192,29 +253,101 @@ def build_title():
 
 def build_analysis():
 	items = []
+
+	intro = """
+	In recent years, the US economy has been hit hard by multiple economic crises, from global pandemics to supply chain shocks to wars, and naturally, the expenditure of resources to combat these crises has negatively impacted the cost of living in the US. This report takes a holistic look into the cost of living in the United States, using data from the
+	Economic Policy Institute (EPI) In order to understand the state of the US economy, we first need to measure the cost of living, then normalize it in accordance to median incomes in order to gauge regional affordability. 
+	"""
+	items.append(html.P(intro))
+
+	data_prep = """
+	To prepare my data for this analysis, I dropped rows with null values to simplify the analysis process. It only meant losing 10 records, which should not meaningfully offset the value of this analysis.
+	I also synthesized numerous measures using the dataset. The dataset gives a simple 'family_member_count' feild, which isn't provided as a numerical value. I parse the values into the `parents` and `children` feilds.
+	Further, I sum these up into a `family_size` value. In order to measure the affordability of a region, I take total expenditures and divide it by median income, to normalize the values.
 	
+	
+	"""
+	items.append(html.P(data_prep))
+	
+
+	childcare = """
+	The family unit is not complete without children, and in the modern, fast-paced world, childcare is a necessity.  Figure 1 is a map of 
+	childcare costs by state. Childcare costs have considerable variation across the states. Figure 2 is a bar chart of the top 12 most
+	expensive counties in which to raise a child. It includes counties from New York and the District of Columbia.
+	"""
+	items.append(html.P(childcare))
+
 	# Analysis 
-	housing_p = """
-	Housing. We all need it, whether we are high up in the mountains of Appalachia or in the Great Plains - to simply survive. Figure 1 is a histogram that shows the typical annual cost of housing per state. Figure 2 shows housing prices by state. and as you can see, housing prices are generally highest near the coasts, and lowest in the Midwest and Southeast.
-	Hawaii, being a small slice of Heaven on Earth, naturally has the highest housing prices, with a median of 61k / year. Country-wide it floats at a median of $10,400 each year.
+	housing = """
+	Housing. We all need it, whether we are high up in the mountains of Appalachia or in the Great Plains - to simply survive the elements.
+	Figure 4 is a histogram that shows the typical annual cost of housing per state. Figure 5 shows housing prices by state on a map,
+	and as you can see, housing prices are generally highest near the coasts, and lowest in the Midwest and Southeast. Hawaii, being a small
+	slice of Heaven on Earth, naturally has the highest housing prices, with a median of 61k / year. Country-wide it floats at a median of
+	$10,400 each year. Figure 6 is a scatterplot of housing prices versus taxes, and suggests that higher housing costs is positively correlated
+	with higher taxes, which is likely due to property tax law.
 	"""
-	items.append(html.P(housing_p))
+	items.append(html.P(housing))
 
-
-	transportation_p = """
+	transportation = """
 	A well-functioning economy depends on cheap transportation to move goods, services, and people to where the demand is.
-	Figure 3 shows the distribution curve of transportation costs across America. As you can see, the graph is left skewed,
-	which, as shown by Figure 4 is due the the outlier, Washington, D.C., which has an impressively cheap $8,500 annual
-	cost of transportation.
+	Figure 7 shows the distribution curve of transportation costs across America. As you can see, the graph is left skewed
+	with a median of approximately $13,800 a year, which, as shown by Figure 8 is due the the outlier Washington, D.C.,
+	where transportation is cheap. Figure 9 is a regression plot of transportation cost versus total expenditures, and it
+	shows that transportation costs are negatively correlated with total costs. This may indicate that cheaper transportation
+	leads to more economic growth and therefore higher paying jobs and cost of living
 	"""
-	items.append(html.P(transportation_p))
+	items.append(html.P(transportation))
+
+	healthcare = """
+	Our quality of life is impacted largely by our health, and consequently, regions with high healthcare costs are
+	indicative of regions that struggle to meet a standard of living. Figure 10 is a histogram of the distribution of healthcare
+	expenditures accross the country. It is somewhat right-skewed, but is largely normally distributed. Figure 11 shows that West
+	Virginia is by far the most expensive place to pay for healthcare, with a median price of $37,000 annually. It is reflective of
+	poor policy decisions in the region. 
+	"""
+	items.append(html.P(healthcare))
+
+	
 
 
 
+
+
+	
+
+
+	taxes = """
+	Unfortunately, in order to organize society, any state needs a government, and any government needs tax dollars to power programs that
+	power public infrustructure and social programs. Figure 12 is a bar chart of taxes by state, and Figure 13 is a map thereof. As shown
+	by the map, Oregan and Washington, DC have some of the highest taxes in the country. Figure 14 is a bar chart of the top 12 highest-tax
+	counties in the country. Counties from New York and Washington, D.C have the highest taxes of any region in the United States
+	"""
+	items.append(html.P(taxes))
+
+
+
+	income = """
+	In order to pay for all of this, people naturally need sturdy, competitive incomes. Figure 15 is a boxplot of median household
+	incomes across the counties of the 50 United States, plus the District of Columbia, and it shows that incomes across the state are
+	highly variable, ranging from $27,000 in Georgia, up to $177k in Virginia. Virginia was by far the most riddled with inter-county
+	income inequality. Deleware had the least variation. Figure 16 better conveys this information geographically. Figure 17 is a histogram
+	of median family incomes by state and it is evident that the median wage in the US is approximately $70,000 a year.
+
+	"""
+	items.append(html.P(income))
 	return items
 
 def build_conclusion():
 	items = []
+	income = """
+	Figure 19 is a correlation matrix between each of the aforementioned factors and concludes that family size is highly
+	correlated with the cost of food and healthcare, that total costs are highly correlated with the cost of food and the cost of
+	extraneus necessities, and, interestingly, housing costs are correlated with extraneuss necessity expenditures. Figure 18 shows
+	that total expenditures are positively correlated with higher taxes. A small table is provided to illustrate the data that were
+	provided by the Economic Policy Institute (EPI), including the aforementioned feilds `parents`, `children`, `family_size`, and
+	`is_foodcost_outlier`.
+	"""
+	items.append(html.P(income))
 	return items
 
 
@@ -228,16 +361,11 @@ def build_conclusion():
 
 
 
-def make_dashboard(
-	df: pd.DataFrame,
-	state_df,
-	name: str = "Cost Of Living Dashboard"
-) -> dash.Dash:
+def make_dashboard(df, state_df, name = "Cost Of Living Dashboard") -> dash.Dash:
 
 	items = []
 	state_df["affordability"] = state_df["total_cost"] / state_df["median_family_income"]
 
-	print(state_df["affordability"])
 
 	geometries = load_state_geometries()
 
@@ -300,24 +428,22 @@ def make_dashboard(
 
 	# Title
 	items += build_title()
-
 	items += build_analysis()
-
 	items += build_conclusion()
 
 	# Sections
+	items += build_childcare_section(state_df, df, geometries, childcare_sorted_df)
 	items += build_housing_section(state_df, df, geometries)
 	items += build_transportation_section(state_df, df, geometries)
 	items += build_healthcare_section(state_df, df, geometries)
-	items += build_income_section(state_df, df, geometries)
-	items += build_childcare_section(state_df, df, geometries, childcare_sorted_df)
 	items += build_tax_section(state_df, df, geometries, tax_sorted_df)
-	items += build_summary_section(state_df, corr)
+	items += build_income_section(state_df, df, geometries)
+	items += build_summary_section(df, state_df, corr)
 
 	app.layout = html.Div(items)
 	return app
 
-	# for reference
+	# for my reference
 	'''			  column		 min		 max		range		mean	   median		mode	 skew  outlier_count  outlier_pct
 	0			   case_id	 1.000000	3171.00000	3170.000000   1589.329726   1593.500000	 1.00000 -0.005906			0	0.000000
 	1		   housing_cost   4209.311280   61735.58760   57526.276320  11073.359622  10416.000000   8808.00000  2.575029		 1765	0.056174
